@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Primary Meta -->
+  <title>The Story of Autter.dev | Why We Built a Merge Gate That Actually Runs Your Code</title>
+  <meta name="description"
+    content="Autter.dev was built on a simple insight: AI coding tools are shipping code that looks correct but isn't. Here is the origin story of the runtime-aware merge gate protecting engineering teams from AI slop before it reaches production.">
+  <meta name="author" content="Autter.dev">
+  <meta name="keywords"
+    content="autter.dev, AI code review, merge gate, pull request security, runtime code validation, AI generated code detection, code review automation, database migration safety, security-aware CI, engineering tools">
+  <link rel="canonical" href="https://story.autter.dev">
+
+  <link rel="icon" type="image/x-icon" href="/favicons/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicons/favicon-64x64.png">
+  <link rel="icon" type="image/png" sizes="128x128" href="/favicons/favicon-128x128.png">
+  <link rel="icon" type="image/png" sizes="256x256" href="/favicons/favicon-256x256.png">
+
+  <!-- Apple Touch Icon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+
+  <!-- Android / PWA -->
+  <meta name="theme-color" content="#A87A10">
+
+  <!-- Open Graph (LinkedIn, Slack, iMessage previews) -->
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Autter.dev">
+  <meta property="og:title" content="The Story of Autter.dev">
+  <meta property="og:description"
+    content="AI coding tools are making it easier than ever to push code that looks correct but isn't. Nobody had built a serious, purpose-built system to catch that at the pull request layer. So we did.">
+  <meta property="og:url" content="https://story.autter.dev">
+  <meta property="og:image" content="https://story.autter.dev/autter-harbour.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt"
+    content="Autter.dev: Runtime-aware, schema-aware, security-aware. Every merge, every time.">
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@autter_dev">
+  <meta name="twitter:creator" content="@autter_dev">
+  <meta name="twitter:title" content="The Story of Autter.dev">
+  <meta name="twitter:description"
+    content="AI tools ship code that looks correct but isn't. Autter actually runs your code changes before they merge. Here is where it started.">
+  <meta name="twitter:image" content="https://story.autter.dev/autter-harbour.png">
+  <meta name="twitter:image:alt" content="Autter.dev origin story">
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "The Story of Autter.dev",
+  "description": "The origin story of Autter.dev, a runtime-aware merge gate built to catch AI-generated code issues before they reach production.",
+  "url": "https://story.autter.dev",
+  "image": "https://story.autter.dev/autter-harbour.png",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Autter.dev",
+    "url": "https://autter.dev",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://story.autter.dev/autter-light-logo.png"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://story.autter.dev"
+  }
+}
+</script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quattrocento+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Quattrocento:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
+  <style>
+    .quattrocento-sans-regular {
+      font-family: "Quattrocento Sans", sans-serif;
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    .quattrocento-sans-bold {
+      font-family: "Quattrocento Sans", sans-serif;
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    .quattrocento-sans-regular-italic {
+      font-family: "Quattrocento Sans", sans-serif;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    .quattrocento-sans-bold-italic {
+      font-family: "Quattrocento Sans", sans-serif;
+      font-weight: 700;
+      font-style: italic;
+    }
+
+    .quattrocento-regular {
+      font-family: "Quattrocento", serif;
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    .quattrocento-bold {
+      font-family: "Quattrocento", serif;
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    .inconsolata-regular {
+      font-family: "Inconsolata", monospace;
+      font-optical-sizing: auto;
+      font-weight: 400;
+      font-style: normal;
+      font-variation-settings:
+        "wdth" 100;
+    }
+
+    .inconsolata-bold {
+      font-family: "Inconsolata", monospace;
+      font-optical-sizing: auto;
+      font-weight: 700;
+      font-style: normal;
+      font-variation-settings:
+        "wdth" 100;
+    }
+
+    :root {
+      --bg: #F5F1EA;
+      --surface: #FFFFFF;
+      --surface2: #EDE8DF;
+      --border: #D5CDBE;
+      --border-bright: #C0B8A8;
+      --gold: #9A6F0C;
+      --gold-mid: rgba(154, 111, 12, 0.18);
+      --gold-faint: rgba(154, 111, 12, 0.06);
+      --red: #B03030;
+      --red-faint: rgba(176, 48, 48, 0.07);
+      --teal: #007A66;
+      --teal-faint: rgba(0, 122, 102, 0.07);
+      --ink: #1C1812;
+      --text: #3A3028;
+      --text-dim: #7A7068;
+      --text-muted: #A89E90;
+      --wave: #0E4E6A;
+      --otter-blue: #1e2d4a;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Quattrocento Sans", sans-serif;
+      font-size: 18px;
+      line-height: 1.8;
+      -webkit-font-smoothing: antialiased;
+      text-align: justify;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(245, 241, 234, 0.94);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 90px;
+    }
+
+    .nav-brand {
+      font-family: 'Outfit', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+
+    .nav-brand span {
+      color: var(--teal);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--gold);
+    }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 100px 40px 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 122, 102, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(154, 111, 12, 0.06) 0%, transparent 55%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 32px;
+      animation: fadeUp 0.8s ease both;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 1px;
+      background: var(--gold);
+      opacity: 0.5;
+    }
+
+    .hero h1 {
+      font-family: 'Quattrocento Bold', serif;
+      font-size: clamp(48px, 7vw, 96px);
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.02;
+      margin-bottom: 24px;
+      animation: fadeUp 0.8s 0.1s ease both;
+      max-width: 900px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .hero-sub {
+      font-size: clamp(18px, 2.2vw, 24px);
+      color: var(--text-dim);
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto 48px;
+      animation: fadeUp 0.8s 0.2s ease both;
+    }
+
+    .hero-cta {
+      display: inline-block;
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--teal);
+      border: 1px solid var(--teal);
+      padding: 14px 28px;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+      animation: fadeUp 0.8s 0.3s ease both;
+    }
+
+    .hero-cta:hover {
+      background: var(--teal);
+      color: white;
+    }
+
+    .hero-scroll-hint {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Inconsolata', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      animation: fadeUp 1.2s 0.6s ease both;
+    }
+
+    .scroll-line {
+      width: 1px;
+      height: 40px;
+      background: var(--border-bright);
+      animation: scrollPulse 2s 1.5s ease-in-out infinite;
+    }
+
+    /* LAYOUT WRAPPER */
+    .wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    .wrap-wide {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 64px;
+    }
+
+    /* CHAPTER SYSTEM */
+    .chapter {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .chapter-label {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .chapter-label::after {
+      content: '';
+      flex: 1;
+      max-width: 60px;
+      height: 1px;
+      background: var(--gold);
+    }
+
+    .chapter h2 {
+      font-family: 'Quattrocento Bold', serif;
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.1;
+      margin-bottom: 40px;
+    }
+
+    .chapter h2 em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    /* PROSE */
+    .prose p {
+      font-size: clamp(17px, 1.6vw, 19px);
+      line-height: 1.85;
+      color: var(--text);
+      margin-bottom: 24px;
+      max-width: 680px;
+    }
+
+    .prose p:last-child {
+      margin-bottom: 0;
+    }
+
+    .prose strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* PULL QUOTE */
+    .pull-quote {
+      border-left: 3px solid var(--gold);
+      padding: 28px 40px;
+      margin: 56px 0;
+      background: var(--gold-faint);
+    }
+
+    .pull-quote p {
+      font-family: "Quattrocento", serif;
+      font-size: clamp(18px, 2.5vw, 24px);
+      color: var(--ink);
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    .pull-quote-attr {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-top: 16px;
+    }
+
+    /* INCIDENT CARD - the hallucinated import story */
+    .incident {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--red);
+      padding: 40px 48px;
+      margin: 56px 0;
+      position: relative;
+    }
+
+    .incident-label {
+      font-family: 'Inconsolata', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 20px;
+    }
+
+    .incident blockquote {
+      font-family: "Quattrocento", serif;
+      font-size: clamp(18px, 2vw, 22px);
+      font-style: italic;
+      color: var(--ink);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+
+    .incident p {
+      font-size: 15px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      font-family: "Quattrocento Sans", sans-serif;
+    }
+
+    /* TIMELINE — the day-by-day crash */
+    .timeline {
+      margin: 56px 0;
+      display: flex;
+      flex-direction: column;
+      border-left: 2px solid var(--border-bright);
+      padding-left: 40px;
+    }
+
+    .tl-item {
+      padding: 0 0 40px;
+      position: relative;
+    }
+
+    .tl-item:last-child {
+      padding-bottom: 0;
+    }
+
+    .tl-item::before {
+      content: '';
+      position: absolute;
+      left: -47px;
+      top: 6px;
+      width: 12px;
+      height: 12px;
+      background: var(--bg);
+      border: 2px solid var(--border-bright);
+    }
+
+    .tl-item.bad::before {
+      border-color: var(--red);
+      background: var(--red-faint);
+    }
+
+    .tl-time {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .tl-item.bad .tl-time {
+      color: var(--red);
+      opacity: 0.8;
+    }
+
+    .tl-text {
+      font-size: 18px;
+      color: var(--text);
+      line-height: 1.65;
+    }
+
+    .tl-text strong {
+      color: var(--ink);
+    }
+
+    /* STATS ROW */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin: 56px 0;
+    }
+
+    .stat-cell {
+      background: var(--surface);
+      padding: 36px 32px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: "Quattrocento", serif;
+      font-size: 52px;
+      color: var(--ink);
+      line-height: 1;
+      margin-bottom: 12px;
+    }
+
+    .stat-num.accent {
+      color: var(--gold);
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.5;
+      font-family: "Quattrocento Sans", sans-serif;
+    }
+
+    .stat-note {
+      font-family: 'Inconsolata', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* THE HARBOUR DIVIDER */
+    .harbour-divider {
+      padding: 40px 0;
+      text-align: center;
+      position: relative;
+    }
+
+    .harbour-art {
+      font-size: 48px;
+      margin-bottom: 24px;
+      opacity: 0.6;
+    }
+
+    .harbour-divider h3 {
+      font-family: "Quattrocento", serif;
+      font-size: clamp(24px, 3vw, 36px);
+      color: var(--otter-blue);
+      max-width: 600px;
+      margin: 0 auto 16px;
+      line-height: 1.3;
+    }
+
+    .harbour-divider p {
+      font-size: 14px;
+      color: var(--gold);
+      font-weight: 600;
+      font-family: 'Inconsolata', monospace;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* PROBLEM CARDS */
+    .problem-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      margin: 56px 0;
+    }
+
+    .prob-card {
+      background: var(--surface);
+      padding: 36px 32px;
+      border-top: 2px solid var(--red);
+    }
+
+    .prob-num {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.15em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .prob-card h4 {
+      font-family: 'Quattrocento', serif;
+      font-size: 20px;
+      color: var(--ink);
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+
+    .prob-card p {
+      font-size: 15px;
+      color: var(--text-dim);
+      line-height: 1.65;
+      font-family: "Quattrocento Sans", sans-serif;
+    }
+
+    /* THE FOUR CHECKS */
+    .checks {
+      margin: 56px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .check-item {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      background: var(--surface);
+      border: 1px solid var(--border);
+    }
+
+    .check-num {
+      background: var(--ink);
+      color: var(--bg);
+      font-family: 'Quattrocento', serif;
+      font-size: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .check-body {
+      padding: 28px 32px;
+    }
+
+    .check-body h4 {
+      font-family: 'Quattrocento', serif;
+      font-size: 22px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .check-body p {
+      font-size: 18px;
+      color: var(--text-dim);
+      line-height: 1.65;
+      font-family: "Quattrocento Sans", sans-serif;
+    }
+
+    .check-tag {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 8px;
+      opacity: 0.8;
+    }
+
+    /* PRINCIPLES */
+    .beliefs {
+      margin: 56px 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .belief {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 32px;
+      padding: 32px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: start;
+    }
+
+    .belief:last-child {
+      border-bottom: none;
+    }
+
+    .belief-marker {
+      font-family: 'Quattrocento', serif;
+      font-size: 28px;
+      color: var(--gold);
+      opacity: 0.8;
+      padding-top: 2px;
+    }
+
+    .belief-text h4 {
+      font-family: 'Quattrocento', serif;
+      font-size: 20px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .belief-text p {
+      font-size: 16px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      font-family: "Quattrocento Sans", sans-serif;
+    }
+
+    /* CAPTAIN PATCH SECTION */
+    .patch-section {
+      background: var(--ink);
+      color: rgba(255, 255, 255, 0.85);
+      padding: 100px 0;
+    }
+
+    .patch-section .chapter-label {
+      color: var(--gold);
+    }
+
+    .patch-section .chapter-label::after {
+      background: var(--gold);
+    }
+
+    .patch-section h2 {
+      color: white;
+    }
+
+    .patch-section .prose p {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .patch-section .prose strong {
+      color: white;
+    }
+
+    .patch-section .pull-quote {
+      border-left-color: var(--gold);
+      background: rgba(154, 111, 12, 0.12);
+    }
+
+    .patch-section .pull-quote p {
+      color: white;
+    }
+
+    .patch-section .pull-quote-attr {
+      color: rgba(255, 255, 255, 0.3);
+    }
+
+    .patch-mascot {
+      font-size: 72px;
+      margin-bottom: 32px;
+      display: block;
+      filter: grayscale(0.2);
+    }
+
+    .patch-role {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 24px;
+    }
+
+    /* WHAT SETS PATCH APART */
+    .differentiators {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2px;
+      margin: 56px 0;
+    }
+
+    .diff {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 32px 28px;
+    }
+
+    .diff-icon {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+
+    .diff h4 {
+      font-family: 'Quattrocento', serif;
+      font-size: 18px;
+      color: white;
+      margin-bottom: 10px;
+    }
+
+    .diff p {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.5);
+      line-height: 1.65;
+      font-family: "Quattrocento Sans", sans-serif;
+    }
+
+    /* CLOSING */
+    .closing {
+      padding: 120px 0;
+      text-align: center;
+    }
+
+    .closing h2 {
+      font-family: 'Quattrocento', serif;
+      font-size: clamp(36px, 5vw, 64px);
+      color: var(--ink);
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+
+    .closing h2 em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .closing p {
+      font-size: clamp(17px, 1.8vw, 20px);
+      color: var(--text-dim);
+      max-width: 560px;
+      margin: 0 auto 48px;
+      line-height: 1.7;
+    }
+
+    .cta-group {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      font-family: 'Inconsolata', monospace;
+      font-size: 16px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      background: var(--ink);
+      color: white;
+      padding: 16px 36px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.8;
+    }
+
+    .btn-secondary {
+      font-family: 'Inconsolata', monospace;
+      font-size: 16px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border: 1px solid var(--border-bright);
+      padding: 16px 36px;
+      text-decoration: none;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--ink);
+      color: var(--ink);
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 48px 64px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-brand {
+      font-family: 'Outfit', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+
+    .footer-brand span {
+      color: var(--teal);
+    }
+
+    .footer-sub {
+      font-family: 'Inconsolata', monospace;
+      font-size: 15px;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    .footer-right {
+      font-family: 'Inconsolata', monospace;
+      font-size: 16px;
+      color: var(--text-muted);
+      text-align: right;
+      line-height: 2;
+    }
+
+    /* HORIZONTAL RULE */
+    .rule {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes scrollPulse {
+
+      0%,
+      100% {
+        opacity: 0.3;
+        transform: scaleY(1);
+      }
+
+      50% {
+        opacity: 0.7;
+        transform: scaleY(1.2);
+      }
+    }
+
+    /* SCROLL REVEAL */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      nav {
+        padding: 0 24px;
+      }
+
+      .wrap {
+        padding: 0 24px;
+      }
+
+      .wrap-wide {
+        padding: 0 24px;
+      }
+
+      .hero {
+        padding: 100px 24px 80px;
+      }
+
+      .stats-row {
+        grid-template-columns: 1fr;
+      }
+
+      .problem-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .differentiators {
+        grid-template-columns: 1fr;
+      }
+
+      .check-item {
+        grid-template-columns: 60px 1fr;
+      }
+
+      footer {
+        flex-direction: column;
+        gap: 24px;
+        text-align: center;
+      }
+
+      .footer-right {
+        text-align: center;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .incident {
+        padding: 28px 24px;
+      }
+
+      .pull-quote {
+        padding: 20px 24px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <img src="autter-light-logo.png" alt="autter logo" style="height: 80px;">
+    <ul class="nav-links">
+      <li><a href="#the-incident">The Incident</a></li>
+      <li><a href="#the-problem">The Problem</a></li>
+      <li><a href="#captain-patch">Captain Patch</a></li>
+      <li><a href="#the-gate">The Gate</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div>
+      <div class="hero-eyebrow">The Origin Story</div>
+      <h1>Every harbour needs<br>a guard <em>at the gate.</em></h1>
+      <p class="hero-sub quattrocento-sans-regular">This is the story of a codebase under siege, a very thorough otter,
+        and the tool we built
+        because nothing else existed.</p>
+      <a href="#the-incident" class="hero-cta">Read the story</a>
+    </div>
+    <div class="hero-scroll-hint">
+      <span>Scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- CHAPTER 1: THE INCIDENT -->
+  <section class="chapter" id="the-incident">
+    <div class="wrap">
+      <div class="chapter-label reveal">Chapter One</div>
+      <h2 class="reveal">The Friday that<br>started <em>everything.</em></h2>
+
+      <div class="prose reveal">
+        <p>It started with a hallucinated import. A developer on a team we know well was using an AI coding tool to
+          speed up a feature. The code looked great. The tests passed. The PR looked great. It merged on a Friday
+          afternoon.</p>
+      </div>
+
+      <div class="timeline reveal">
+        <div class="tl-item">
+          <div class="tl-time">Friday, 4:47 PM</div>
+          <div class="tl-text">PR merged. Linter passed. Reviewer approved. Everyone went home.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-time">Friday, 4:51 PM</div>
+          <div class="tl-text">Deploy pipeline completed. Code is now live on production servers.</div>
+        </div>
+        <div class="tl-item bad">
+          <div class="tl-time">Monday, 9:12 AM</div>
+          <div class="tl-text bad-text"><strong>The app starts throwing runtime errors.</strong> The AI had invented a
+            library name that did not exist anywhere on earth. It had generated a convincing import statement, confident
+            and syntactically perfect, pointing to a package that had never been published.</div>
+        </div>
+        <div class="tl-item bad">
+          <div class="tl-time">Monday, 11:30 AM</div>
+          <div class="tl-text"><strong>Three engineers pulled from their current sprint</strong> to diagnose, patch, and
+            redeploy. A four-line fix to remove code that should never have shipped.</div>
+        </div>
+      </div>
+
+      <div class="incident reveal">
+        <div class="incident-label">The finding that changed us</div>
+        <blockquote>"The linter passed. The syntax checker passed. The reviewer approved it on a Friday. The library did
+          not exist. The app crashed on Monday."</blockquote>
+        <p>That kind of thing used to be rare enough to laugh about. It is not rare anymore. Teams using AI tools are
+          shipping code at speeds that human review was never designed to handle, and the tools that are supposed to
+          catch problems were all built before AI-generated code was a thing anyone needed to worry about.</p>
+      </div>
+
+      <div class="prose reveal">
+        <p>Nobody had built the tool that actually runs the code. That checks whether the imports exist. That maps the
+          blast radius before the merge. <em>So we decided to build it ourselves</em>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHAPTER 2: THE SCALE OF THE PROBLEM -->
+  <section class="chapter" id="the-problem" style="padding: 20px 0 !important;">
+    <div class="wrap">
+      <div class="chapter-label reveal">Chapter Two</div>
+      <h2 class="reveal">A problem that is<br><em>bigger</em> than one incident.</h2>
+
+      <div class="prose reveal">
+        <p>The hallucinated import was not a fluke. It was a symptom of something structural. AI coding tools are
+          extraordinary. They let teams ship faster than ever before. But speed without a reliable gate is just a faster
+          way to break things.</p>
+      </div>
+    </div>
+
+    <div class="wrap-wide">
+      <div class="stats-row reveal">
+        <div class="stat-cell">
+          <div class="stat-num accent">77%</div>
+          <div class="stat-label">Of developers now use AI coding tools regularly</div>
+          <div class="stat-note">Stack Overflow Developer Survey, 2024</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num accent">1.7x</div>
+          <div class="stat-label">More bugs in AI-generated code than human-written code</div>
+          <div class="stat-note">GitClear analysis of 211M lines of code</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-num">0</div>
+          <div class="stat-label">Tools that actually run your code before merging it</div>
+          <div class="stat-note">Before autter</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="pull-quote reveal">
+        <p>The volume of code going out has exploded. The human capacity to carefully evaluate it has not moved at all.
+          And the tools that are supposed to catch problems were built for a different era.</p>
+      </div>
+
+      <div class="prose reveal">
+        <p>This is not a story about bad developers. Every team we have talked to cares about quality. The problem is
+          structural. The tools have not kept up with how code is actually being written now.</p>
+      </div>
+    </div>
+
+    <div class="wrap-wide">
+      <div class="problem-cards reveal">
+        <div class="prob-card">
+          <div class="prob-num">Problem 01</div>
+          <h4>The phantom cargo problem</h4>
+          <p>AI tools invent library names, function signatures, and API endpoints with total confidence. They look
+            real. They pass every static check. They fail the moment the code runs, because the thing they are calling
+            does not exist.</p>
+        </div>
+        <div class="prob-card">
+          <div class="prob-num">Problem 02</div>
+          <h4>The invisible blast radius</h4>
+          <p>A two-line change to an authentication function can silently break ten other parts of the system. Reviewers
+            looking only at the diff have no way to know that without a complete map of the codebase. Nobody holds that
+            map in their head for every file in every repo they review.</p>
+        </div>
+        <div class="prob-card">
+          <div class="prob-num">Problem 03</div>
+          <h4>Security checks that run too late</h4>
+          <p>Traditional scanners find vulnerabilities after code is merged, deployed, and live on servers real users
+            are hitting. By then the cleanup costs more than the original feature was worth, and the trust damage is
+            already done.</p>
+        </div>
+        <div class="prob-card">
+          <div class="prob-num">Problem 04</div>
+          <h4>Noise that trains reviewers to ignore findings</h4>
+          <p>A tool that raises fifty uncertain findings on every PR trains teams to dismiss everything. Real issues
+            hide in the noise. The false positive problem is not a tradeoff. It is a product failure that makes the tool
+            actively harmful.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="pull-quote reveal">
+        <p>There is no fast, PR-level system that answers the question teams actually need answered: if this change is
+          wrong, what breaks, how far does the damage spread, and how risky is it to ship right now?</p>
+        <div class="pull-quote-attr">The gap that made autter inevitable</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- INTERSTITIAL: HARBOUR METAPHOR -->
+
+  <div class="harbour-divider">
+    <div class="harbour-art">⚓</div>
+    <h3>Picture a harbour. Picture a town. Picture everything that depends on what comes through the gate.</h3>
+    <p>The codebase is the town. Every pull request is a ship at the dock.</p>
+  </div>
+
+  <!-- CHAPTER 3: CAPTAIN PATCH -->
+  <section class="patch-section" id="captain-patch" style="padding-top: 0 !important;">
+    <img src="./autter-harbour.png" alt="autter Harbour Divider" style="margin-bottom: 48px; max-width: 100vw;">
+
+    <div class="wrap">
+      <div class="chapter-label reveal">Chapter Three</div>
+      <div class="reveal" style="display: flex; align-items: center; gap: 24px;">
+        <h2 style="margin-bottom: 0;">The otter who decided<br><em>someone had to check.</em></h2>
+        <img src="./autter-wave.png" alt="Autter Mr. Patch" style="max-height: 180px;">
+      </div>
+
+      <div style="margin-bottom: 48px;" class="reveal">
+        <div class="patch-role">Captain Patch / Harbour Auditor / autter.dev</div>
+      </div>
+
+      <div class="prose reveal">
+        <p>There was once a town that lived by the harbour. Carefully built, with each district depending on the next.
+          The people who lived there had spent years learning its patterns. They knew which bridges bore the most
+          weight, which streets led to the square, which wells supplied the bakeries and which ones fed the mill.</p>
+        <p>Ships arrived every day. The familiar ones from nearby ports were waved through without much fuss. Their
+          captains had docked before. Their cargo was trusted.</p>
+        <p style="font-weight: 700;">Then came the machines.</p>
+        <p>Tools so powerful that almost anyone could now assemble a ship in hours that once would have taken months.
+          The harbour received more goods than ever before. New ideas arrived from new places. But more often than
+          not, they came across grave failures, yet they were extraordinarily confident about things they invented.
+        </p>
+        <p>A machine-built ship might carry a crate labelled with a merchant's name, except that merchant had never
+          existed. The label looked authentic. The crate looked sealed. Everything about it passed a casual inspection.
+          But open it, and there was nothing inside. Or worse: something inside that would rot the warehouse it was
+          stored in.</p>
+      </div>
+
+      <div class="pull-quote reveal">
+        <p>The harbour master could not read every manifest, open every crate, and test every length of rope for every
+          ship that arrived. There were too many ships. There was only one harbour master. Something in that equation
+          had to change.</p>
+      </div>
+
+      <div class="prose reveal">
+        <p>His name was Patch. He had been at the harbour long enough to remember every ship by name and
+          every captain by face. He had watched the change come. He had seen the inspection process grow thin. And the
+          occasional disaster that followed when something wrong slipped through.</p>
+        <p>He did not complain about it. He was not the sort to complain. He was the sort to stand at the gate and start
+          checking.</p>
+      </div>
+    </div>
+
+    <div class="wrap-wide">
+      <div class="differentiators reveal">
+        <div class="diff">
+          <div class="diff-icon">📦</div>
+          <h4 style="text-align: left;">He opened the crates</h4>
+          <p>Not the manifest. Not the captain's word. He actually opened the crates, unpacked the cargo, and ran the
+            mechanisms to see if they worked under load. Reading code and running it are completely different problems.
+          </p>
+        </div>
+        <div class="diff">
+          <div class="diff-icon">🗺️</div>
+          <h4 style="text-align: left;">He had the map</h4>
+          <p>A complete, current, always-updated map of the town. He knew which road connected to which bridge, which
+            district depended on which supply. He consulted the map before opening a single crate. The map told him
+            where to look hardest.</p>
+        </div>
+        <div class="diff">
+          <div class="diff-icon">⚖️</div>
+          <h4 style="text-align: left;">He measured the reach</h4>
+          <p>A barrel going to one kitchen received one level of attention. A barrel supplying the whole district's
+            water received another. Two ships could carry the same flaw and represent entirely different levels of risk,
+            depending on where their cargo was going.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="pull-quote reveal">
+        <p>He was not trying to slow the ships down. He was trying to ensure that what reached the town was what it
+          claimed to be. No more, no less, and nothing hidden.</p>
+        <div class="pull-quote-attr">On what Patch was actually doing</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHAPTER 4: THE FOUR CHECKS -->
+  <section class="chapter" id="the-gate">
+    <div class="wrap">
+      <div class="chapter-label reveal">Chapter Four</div>
+      <h2 class="reveal">The four things Patch checks<br>at <em>every gate.</em></h2>
+
+      <div class="prose reveal">
+        <p>Other inspectors were not lazy. They were doing what they had always done: reading manifests, looking at
+          crates from the outside, asking the captain if everything was in order. This had worked for a long time. The
+          machine-built ships broke that assumption. The old checks, applied to this new kind of ship, were not catching
+          what needed to be caught.</p>
+      </div>
+    </div>
+
+    <div class="wrap-wide">
+      <div class="checks reveal">
+        <div class="check-item">
+          <div class="check-num">1</div>
+          <div class="check-body">
+            <div class="check-tag">Import validation</div>
+            <h4>The manifest against the registries</h4>
+            <p>Every library name, every function reference, every listed dependency is confirmed against what actually
+              exists. Phantom cargo does not survive this check. AI tools invent things with complete confidence. Patch
+              checks whether the confidence is warranted.</p>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">2</div>
+          <div class="check-body">
+            <div class="check-tag">Sandbox execution</div>
+            <h4>The cargo under load</h4>
+            <p>In a sealed testing environment, the code is actually run. Test suites execute and compare against the
+              base branch. If something will fail, it fails here, in isolation, before it ever touches the production
+              system. There is a whole class of bugs that look fine on paper and break immediately when executed. The
+              only reliable way to find them is to execute.</p>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">3</div>
+          <div class="check-body">
+            <div class="check-tag">Security scanning</div>
+            <h4>The hull and the foundations</h4>
+            <p>The structural parts that are not visible at a glance. The concealed connections. The things that will
+              matter later, in production, when the stakes are real. Vulnerabilities, exposed credentials,
+              authentication removed from a gate that really needed it. A ship whose hull looks sound but whose keel is
+              secretly cracked is not a sound ship.</p>
+          </div>
+        </div>
+        <div class="check-item">
+          <div class="check-num">4</div>
+          <div class="check-body">
+            <div class="check-tag">Blast radius analysis</div>
+            <h4>The reach</h4>
+            <p>Where is this change going, and how many parts of the system depend on it? A vulnerability in a file that
+              nothing depends on is a different problem to the same vulnerability in a file that forty services call.
+              Risk is not just what is broken. It is how far the damage spreads. The answer determines how deeply Patch
+              looks.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="prose reveal" style="margin-top: 56px;">
+        <p>When Patch finds something wrong, he does not simply refuse the cargo and send the ship away. He comes back
+          with an explanation. Here is the exact problem. Here is why it matters. Here is the specific fix. Not a
+          verdict. A path forward.</p>
+        <p>And when something cannot be fixed at the dock, the berth is blocked. Not a suggestion. Not a recommendation.
+          A gate, closed.</p>
+      </div>
+
+      <div class="pull-quote reveal">
+        <p>The gate is not there to stop the ships. It is there so that when a ship reaches the town, the town knows
+          what arrived.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHAT WE BELIEVE -->
+  <section class="chapter" id="beliefs">
+    <div class="wrap">
+      <div class="chapter-label reveal">What We Believe</div>
+      <h2 class="reveal">A few things we are<br><em>stubborn about.</em></h2>
+
+      <div class="beliefs reveal">
+        <div class="belief">
+          <div class="belief-marker">01</div>
+          <div class="belief-text">
+            <h4>The gate has to be real</h4>
+            <p>A security check you can ignore when a deadline arrives is not a security check. It is advice. autter
+              blocks the merge button. That is intentional, and it is non-negotiable.</p>
+          </div>
+        </div>
+        <div class="belief">
+          <div class="belief-marker">02</div>
+          <div class="belief-text">
+            <h4>Reading code is not running it</h4>
+            <p>There is a whole class of bugs that look fine on paper and break immediately when executed. The only
+              reliable way to find them before production is to actually run the code. Every other tool skips this step.
+              We do not.</p>
+          </div>
+        </div>
+        <div class="belief">
+          <div class="belief-marker">03</div>
+          <div class="belief-text">
+            <h4>Reach changes everything</h4>
+            <p>A vulnerability in a file nothing depends on is a different problem to the same vulnerability in a file
+              forty services call. Risk is not just what is broken. It is how far the damage spreads. We measure both
+              before surfacing anything.</p>
+          </div>
+        </div>
+        <div class="belief">
+          <div class="belief-marker">04</div>
+          <div class="belief-text">
+            <h4>Noise is a product failure</h4>
+            <p>A tool that raises too many false alarms gets turned off. Every finding autter surfaces has to be real,
+              explained, and fixable. We would rather catch five real issues than flag fifty uncertain ones.</p>
+          </div>
+        </div>
+        <div class="belief">
+          <div class="belief-marker">05</div>
+          <div class="belief-text">
+            <h4>The maintainer is the customer</h4>
+            <p>We build for the people who own codebases, not the people who submit to them. The maintainer carries the
+              risk when something goes wrong. Features that reduce maintainer burden ship first.</p>
+          </div>
+        </div>
+        <div class="belief">
+          <div class="belief-marker">06</div>
+          <div class="belief-text">
+            <h4>AI code needs a new kind of review</h4>
+            <p>Every other tool in this space was designed before AI-generated code was something anyone needed to worry
+              about. We started from scratch in 2025, building for the world as it actually is, not the world these
+              tools were designed for.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING CTA -->
+  <section class="closing">
+    <div class="wrap">
+      <h2 class="reveal">Every pull request is<br>a ship at the <em>gate.</em></h2>
+      <p class="reveal">autter is Patch. A very thorough otter, and a check that actually means something. The gate is
+        real. Come see for yourself.</p>
+      <div class="cta-group reveal">
+        <a href="mailto:hello@autter.dev" class="btn-primary">Get Early Access</a>
+        <a href="https://handbook.autter.dev" class="btn-secondary">Read the Handbook</a>
+      </div>
+    </div>
+  </section>
+
+  <img src="./checking-otter.png" alt="autter Checking Otter" style="margin-bottom: 48px; max-width: 100vw;">
+
+
+  <footer>
+    <div style="display: flex; flex-direction: column; align-items: center;">
+      <img src="autter-light-logo.png" alt="autter logo" style="height: 68px; margin-bottom: 6px;">
+      <div class="footer-sub">auditor otter / autter.dev / hello@autter.dev</div>
+    </div>
+    <div class="footer-right">
+      The gate is real.<br>
+      The otter is watching.
+    </div>
+  </footer>
+
+  <script>
+    // Scroll reveal
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -60px 0px' });
+    reveals.forEach(el => observer.observe(el));
+
+    // Stagger children of groups
+    document.querySelectorAll('.checks, .problem-cards, .differentiators, .stats-row, .beliefs').forEach(group => {
+      const children = group.children;
+      Array.from(children).forEach((child, i) => {
+        if (!child.classList.contains('reveal')) {
+          child.style.opacity = '0';
+          child.style.transform = 'translateY(20px)';
+          child.style.transition = `opacity 0.5s ${i * 0.08}s ease, transform 0.5s ${i * 0.08}s ease`;
+        }
+      });
+      const groupObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            Array.from(children).forEach(child => {
+              child.style.opacity = '1';
+              child.style.transform = 'translateY(0)';
+            });
+            groupObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+      groupObserver.observe(group);
+    });
+  </script>
+</body>
+
+</html>
