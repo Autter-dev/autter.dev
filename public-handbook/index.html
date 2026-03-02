@@ -1,0 +1,1853 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- Primary Meta -->
+  <title>The Autter.dev Handbook | How We Think About Code Review, AI Slop, and Merge Safety</title>
+  <meta name="description"
+    content="The public handbook for autter.dev. How the product works, who it is built for, and the principles behind the only merge gate that actually runs your code before it ships.">
+  <meta name="author" content="Autter.dev">
+  <meta name="keywords"
+    content="autter.dev, AI code review, merge gate, pull request safety, runtime validation, database migration safety, AI generated code, open source code review, engineering team tools, contributor scoring">
+  <link rel="canonical" href="https://handbook.autter.dev">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/favicons/favicon.ico">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicons/favicon-64x64.png">
+  <link rel="icon" type="image/png" sizes="128x128" href="/favicons/favicon-128x128.png">
+  <link rel="icon" type="image/png" sizes="256x256" href="/favicons/favicon-256x256.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png">
+  <meta name="theme-color" content="#A87A10">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Autter.dev">
+  <meta property="og:title" content="The Autter.dev Handbook">
+  <meta property="og:description"
+    content="Every pull request is a risk decision. This is how autter thinks about making it fast, safe, and enforceable for the teams responsible for what ships.">
+  <meta property="og:url" content="https://handbook.autter.dev">
+  <meta property="og:image" content="https://handbook.autter.dev/autter-harbour.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt"
+    content="Autter.dev: Runtime-aware, schema-aware, security-aware. Every merge, every time.">
+
+  <!-- Twitter / X Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@autter_dev">
+  <meta name="twitter:creator" content="@autter_dev">
+  <meta name="twitter:title" content="The Autter.dev Handbook">
+  <meta name="twitter:description"
+    content="How autter works, who it is built for, and why the only real solution to AI-generated code risk is a merge gate that actually runs the code.">
+  <meta name="twitter:image" content="https://handbook.autter.dev/autter-harbour.png">
+  <meta name="twitter:image:alt" content="Autter.dev public handbook">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quattrocento+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Quattrocento:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@200..900&display=swap" rel="stylesheet">
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "The Autter.dev Handbook",
+  "description": "The public handbook for autter.dev, covering how the product works, who it serves, and the principles behind a runtime-aware merge gate built for the AI coding era.",
+  "url": "https://handbook.autter.dev",
+  "image": "https://handbook.autter.dev/autter-harbour.png",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Autter.dev",
+    "url": "https://autter.dev",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://handbook.autter.dev/autter-light-logo.png"
+    }
+  },
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://handbook.autter.dev"
+  }
+}
+</script>
+  <style>
+    .quattrocento-sans-regular {
+      font-family: "Quattrocento Sans", sans-serif;
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    .quattrocento-sans-bold {
+      font-family: "Quattrocento Sans", sans-serif;
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    .quattrocento-sans-regular-italic {
+      font-family: "Quattrocento Sans", sans-serif;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    .quattrocento-sans-bold-italic {
+      font-family: "Quattrocento Sans", sans-serif;
+      font-weight: 700;
+      font-style: italic;
+    }
+
+    .quattrocento-regular {
+      font-family: "Quattrocento", serif;
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    .quattrocento-bold {
+      font-family: "Quattrocento", serif;
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    .inconsolata-regular {
+      font-family: "Inconsolata", monospace;
+      font-optical-sizing: auto;
+      font-weight: 400;
+      font-style: normal;
+      font-variation-settings:
+        "wdth" 100;
+    }
+
+    .inconsolata-bold {
+      font-family: "Inconsolata", monospace;
+      font-optical-sizing: auto;
+      font-weight: 700;
+      font-style: normal;
+      font-variation-settings:
+        "wdth" 100;
+    }
+
+    :root {
+      --bg: #F5F1EA;
+      --surface: #FFFFFF;
+      --surface2: #EDE8DF;
+      --border: #D5CDBE;
+      --border-bright: #C0B8A8;
+      --gold: #9A6F0C;
+      --gold-mid: rgba(154, 111, 12, 0.18);
+      --gold-faint: rgba(154, 111, 12, 0.06);
+      --red: #B03030;
+      --red-faint: rgba(176, 48, 48, 0.07);
+      --teal: #007A66;
+      --teal-faint: rgba(0, 122, 102, 0.07);
+      --ink: #1e2d4a;
+      --text: #3A3028;
+      --text-dim: #7A7068;
+      --text-muted: #A89E90;
+      --wave: #0E4E6A;
+      --otter-blue: #1e2d4a;
+      --bg2: #EEE9E0;
+      --border2: #C4B8A8;
+      --teal-d: rgba(0, 168, 138, 0.10);
+      --teal-f: rgba(0, 168, 138, 0.05);
+      --gold-d: rgba(168, 122, 16, 0.10);
+      --gold-f: rgba(168, 122, 16, 0.05);
+      --red-f: rgba(184, 50, 50, 0.06);
+      --green: #1A7A48;
+      --green-f: rgba(26, 122, 72, 0.06);
+      --blue: #1E5FAA;
+      --blue-f: rgba(30, 95, 170, 0.06);
+      --purple: #6B3FBA;
+      --body: #3A3228;
+      --mid: #5A5048;
+      --dim: #8C8075;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--body);
+      font-family: "Quattrocento Sans", sans-serif;
+      font-size: 16px;
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      text-align: justify;
+    }
+
+    /* NAV */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(247, 244, 239, 0.96);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 90px;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .nav-logo {
+      height: 26px;
+      width: auto;
+    }
+
+    .nav-wm {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+
+    .nav-wm em {
+      font-style: normal;
+      color: var(--teal);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+    }
+
+    .nav-links a {
+      font-family: 'Inconsolata', monospace;
+      padding: 20px 14px;
+      white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-decoration: none;
+    }
+
+    .nav-links a:hover {
+      color: var(--teal);
+      border-bottom-color: var(--teal);
+    }
+
+    .nav-cta {
+      font-family: "Quattrocento Sans", sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--teal);
+      padding: 8px 20px;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: opacity .2s;
+    }
+
+    .nav-cta:hover {
+      opacity: .85;
+    }
+
+    /* COVER */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 80px 72px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 65% 60% at 90% 40%, rgba(0, 168, 138, 0.07) 0%, transparent 60%), radial-gradient(ellipse 45% 60% at 5% 85%, rgba(168, 122, 16, 0.05) 0%, transparent 55%);
+      pointer-events: none;
+    }
+
+    .cover-eye {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      animation: up .7s ease both;
+    }
+
+    .cover-eye::before {
+      content: '';
+      width: 32px;
+      height: 1px;
+      background: var(--teal);
+      opacity: .6;
+    }
+
+    .cover-grid {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap: 80px;
+      align-items: start;
+    }
+
+    .cover h1 {
+      font-family: 'Quattrocento Bold', serif;
+      font-size: clamp(44px, 5.5vw, 72px);
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.06;
+      letter-spacing: -.02em;
+      margin-bottom: 28px;
+      animation: up .7s .1s ease both;
+    }
+
+    .cover h1 em {
+      font-style: italic;
+      color: var(--teal);
+    }
+
+    .cover-intro {
+      font-size: 18px;
+      color: var(--mid);
+      line-height: 1.72;
+      max-width: 520px;
+      margin-bottom: 36px;
+      animation: up .7s .2s ease both;
+    }
+
+    .cover-tag {
+      padding: 22px 28px;
+      border: 1px solid var(--border2);
+      border-left: 3px solid var(--teal);
+      background: var(--surface);
+      animation: up .7s .3s ease both;
+    }
+
+    .cover-tag p {
+      font-family: 'Inconsolata', monospace;
+      font-size: 18px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .cover-right {
+      animation: up .7s .2s ease both;
+      padding-top: 12px;
+    }
+
+    .cover-right-lbl {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+      opacity: .6;
+    }
+
+    .stat {
+      padding: 22px 26px;
+      border: 1px solid var(--border);
+      border-bottom: none;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat:last-child {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .stat-val {
+      font-family: 'Quattrocento Bold', serif;
+      font-size: 38px;
+      color: var(--ink);
+      line-height: 1;
+    }
+
+    .stat-lbl {
+      font-size: 13px;
+      color: var(--mid);
+      line-height: 1.4;
+    }
+
+    /* LAYOUT */
+    .layout {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 72px;
+    }
+
+    .section {
+      padding: 100px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sec-hdr {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 28px;
+      margin-bottom: 60px;
+      align-items: start;
+    }
+
+    .sec-num {
+      font-family: 'Inconsolata', monospace;
+      font-size: 24px;
+      color: var(--teal);
+      letter-spacing: .15em;
+      padding-top: 6px;
+      opacity: .8;
+    }
+
+    .sec-title h2 {
+      font-family: 'Quattrocento Bold', serif;
+      font-size: clamp(28px, 3.5vw, 44px);
+      font-weight: 600;
+      color: var(--ink);
+      line-height: 1.12;
+      margin-bottom: 8px;
+    }
+
+    .sec-title .sub {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      color: var(--text-dim);
+      letter-spacing: .07em;
+    }
+
+    .sec-body {
+      margin-left: 84px;
+    }
+
+    .prose p {
+      font-size: 18px;
+      line-height: 1.85;
+      color: var(--body);
+      margin-bottom: 20px;
+    }
+
+    .prose p:last-child {
+      margin-bottom: 0;
+    }
+
+    .prose strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* PROBLEM GRID */
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      margin-bottom: 40px;
+    }
+
+    .prob {
+      background: var(--surface);
+      padding: 28px 28px 24px;
+      border-top: 2px solid var(--red);
+    }
+
+    .prob-icon {
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .prob h4 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .prob p {
+      font-size: 16px;
+      color: var(--mid);
+      line-height: 1.65;
+    }
+
+    /* GAP BLOCK */
+    .gap-block {
+      background: var(--red-faint);
+      border: 1px solid rgba(184, 50, 50, .18);
+      border-left: 3px solid var(--red);
+      padding: 28px 32px;
+      margin-top: 8px;
+    }
+
+    .gap-lbl {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 12px;
+    }
+
+    .gap-block p {
+      font-family: 'Quattrocento Bold', serif;
+      font-size: 20px;
+      color: var(--ink);
+      line-height: 1.5;
+      max-width: 700px;
+    }
+
+    /* PILLARS */
+    .pillars {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-bottom: 48px;
+    }
+
+    .pillar {
+      background: var(--surface);
+      padding: 30px 26px;
+      border-bottom: 2px solid transparent;
+    }
+
+    .pillar.c-teal {
+      border-bottom-color: var(--teal);
+    }
+
+    .pillar.c-gold {
+      border-bottom-color: var(--gold);
+    }
+
+    .pillar.c-red {
+      border-bottom-color: var(--red);
+    }
+
+    .pillar.c-green {
+      border-bottom-color: var(--green);
+    }
+
+    .pillar.c-blue {
+      border-bottom-color: var(--blue);
+    }
+
+    .pillar.c-purple {
+      border-bottom-color: var(--purple);
+    }
+
+    .pillar-num {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+      letter-spacing: .1em;
+    }
+
+    .pillar h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .pillar p {
+      font-size: 14px;
+      color: var(--mid);
+      line-height: 1.65;
+    }
+
+    /* TERMINAL */
+    .terminal {
+      border-radius: 12px;
+      background: #1A2232;
+      overflow: hidden;
+      margin-bottom: 48px;
+    }
+
+    .t-bar {
+      background: #222E44;
+      border-bottom: 1px solid rgba(255, 255, 255, .07);
+      padding: 11px 18px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .t-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    .t-dot.r {
+      background: #e05555;
+    }
+
+    .t-dot.y {
+      background: #e8a838;
+    }
+
+    .t-dot.g {
+      background: #3dba7c;
+    }
+
+    .t-lbl {
+      font-family: 'Inconsolata', monospace;
+      font-size: 10px;
+      color: rgba(184, 200, 224, .5);
+      margin-left: 6px;
+      letter-spacing: .04em;
+    }
+
+    .t-body {
+      padding: 24px 28px;
+      font-family: 'Inconsolata', monospace;
+      font-size: 12px;
+      line-height: 1.9;
+    }
+
+    .tc {
+      color: rgba(106, 125, 152, .65);
+    }
+
+    .tk {
+      color: #7a9cc8;
+    }
+
+    .tw {
+      color: #e8f0fa;
+    }
+
+    .tr {
+      color: #e05555;
+    }
+
+    .tg {
+      color: #3dba7c;
+    }
+
+    .to {
+      color: #e8a838;
+    }
+
+    .ti {
+      padding-left: 20px;
+    }
+
+    /* CAPS GRID */
+    .caps-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      margin-bottom: 40px;
+    }
+
+    .cap {
+      background: var(--surface);
+      padding: 30px 26px;
+    }
+
+    .cap-tag {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      padding: 4px 10px;
+      display: inline-block;
+    }
+
+    .cap-tag.teal {
+      color: var(--teal);
+      background: var(--teal-f);
+    }
+
+    .cap-tag.gold {
+      color: var(--gold);
+      background: var(--gold-f);
+    }
+
+    .cap-tag.red {
+      color: var(--red);
+      background: var(--red-f);
+    }
+
+    .cap-tag.green {
+      color: var(--green);
+      background: var(--green-f);
+    }
+
+    .cap-tag.blue {
+      color: var(--blue);
+      background: var(--blue-f);
+    }
+
+    .cap h4 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .cap p {
+      font-size: 14px;
+      color: var(--mid);
+      line-height: 1.7;
+      margin-bottom: 0;
+    }
+
+    /* MARKET STATS */
+    .mstats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin-bottom: 48px;
+    }
+
+    .mstat {
+      background: var(--surface);
+      padding: 30px 26px;
+    }
+
+    .mstat-val {
+      font-family: 'Quattrocento Bold', serif;
+      font-size: 46px;
+      color: var(--ink);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .mstat-lbl {
+      font-size: 16px;
+      color: var(--body);
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .mstat-ctx {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      color: var(--text-dim);
+      opacity: .55;
+    }
+
+    /* TIMELINE */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tl-row {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 32px;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tl-row:last-child {
+      border-bottom: none;
+    }
+
+    .tl-year {
+      font-family: 'Inconsolata', monospace;
+      font-size: 16px;
+      color: var(--teal);
+      padding-top: 2px;
+    }
+
+    .tl-content h4 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .tl-content p {
+      font-size: 14px;
+      color: var(--mid);
+      line-height: 1.7;
+      max-width: 620px;
+    }
+
+    /* COMPETITOR TABLE */
+    .ctable-wrap {
+      overflow-x: auto;
+      margin-bottom: 40px;
+    }
+
+    table.ctable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 16px;
+    }
+
+    .ctable thead tr {
+      border-bottom: 2px solid var(--border2);
+    }
+
+    .ctable th {
+      padding: 14px 18px;
+      text-align: left;
+      font-family: 'Inconsolata', monospace;
+      font-size: 9px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .ctable th.ours {
+      color: var(--teal);
+    }
+
+    .ctable tbody tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ctable tbody tr:hover {
+      background: var(--surface);
+    }
+
+    .ctable td {
+      padding: 12px 18px;
+      color: var(--mid);
+    }
+
+    .ctable td:first-child {
+      color: var(--ink);
+      font-weight: 500;
+    }
+
+    .ctable td.ours {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .ctable td.no {
+      opacity: .3;
+    }
+
+    .ctable td.partial {
+      color: var(--gold);
+    }
+
+    /* PERSONAS */
+    .personas {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      margin-bottom: 40px;
+    }
+
+    .persona {
+      background: var(--surface);
+      padding: 32px 28px;
+    }
+
+    .persona-tag {
+      font-family: 'Inconsolata', monospace;
+      font-size: 12px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 14px;
+    }
+
+    .persona h3 {
+      font-family: 'Quattrocento Bold', serif;
+      font-size: 20px;
+      color: var(--ink);
+      margin-bottom: 16px;
+    }
+
+    .persona .desc {
+      font-size: 14px;
+      color: var(--mid);
+      line-height: 1.7;
+      margin-bottom: 18px;
+    }
+
+    .persona-pains {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .pain-lbl {
+      font-family: 'Inconsolata', monospace;
+      font-size: 12px;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--red);
+      margin-bottom: 10px;
+      opacity: .7;
+    }
+
+    .pain-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 12px;
+      color: var(--mid);
+      line-height: 1.55;
+      margin-bottom: 8px;
+    }
+
+    .pain-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .pain-arr {
+      color: var(--teal);
+      font-family: 'Inconsolata', monospace;
+      font-size: 13px;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+
+    /* PRINCIPLES */
+    .principles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+    }
+
+    .principle {
+      background: var(--surface);
+      padding: 26px 24px;
+    }
+
+    .prin-tag {
+      font-family: 'Inconsolata', monospace;
+      font-size: 9px;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 10px;
+      opacity: .6;
+    }
+
+    .principle h4 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .principle p {
+      font-size: 13px;
+      color: var(--mid);
+      line-height: 1.65;
+    }
+
+    /* CALLOUT */
+    .callout {
+      background: var(--teal-f);
+      border: 1px solid rgba(0, 168, 138, .16);
+      border-left: 3px solid var(--teal);
+      padding: 24px 28px;
+      margin-top: 40px;
+    }
+
+    .callout p {
+      font-size: 18px;
+      color: var(--body);
+      line-height: 1.8;
+      max-width: 780px;
+    }
+
+    .callout strong {
+      color: var(--ink);
+    }
+
+    /* CTA */
+    .cta-strip {
+      background: var(--ink);
+      padding: 80px 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 60px;
+      flex-wrap: wrap;
+    }
+
+    .cta-left h2 {
+      font-family: 'Quattrocento Bold', serif;
+      font-size: clamp(28px, 4vw, 48px);
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+
+    .cta-left h2 em {
+      font-style: italic;
+      color: var(--teal);
+    }
+
+    .cta-left p {
+      font-size: 16px;
+      color: rgba(255, 255, 255, .5);
+      max-width: 440px;
+      line-height: 1.65;
+    }
+
+    .cta-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .btn-primary {
+      font-family: 'Inconsolata', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--surface);
+      background: var(--teal);
+      padding: 14px 32px;
+      text-decoration: none;
+      transition: opacity .2s;
+      display: inline-block;
+    }
+
+    .btn-primary:hover {
+      opacity: .85;
+    }
+
+    .btn-ghost {
+      font-family: 'Inconsolata', monospace;
+      font-size: 16px;
+      color: rgba(255, 255, 255, .4);
+      text-decoration: none;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      transition: color .2s;
+    }
+
+    .btn-ghost:hover {
+      color: rgba(255, 255, 255, .75);
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 52px 72px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+
+    .ft-brand {
+      font-family: 'Outfit', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -.02em;
+    }
+
+    .ft-brand em {
+      font-style: normal;
+      color: var(--teal);
+    }
+
+    .ft-brand-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .ft-sub {
+      font-family: 'Inconsolata', monospace;
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .ft-links {
+      display: flex;
+      gap: 20px;
+    }
+
+    .ft-links a {
+      font-family: 'Inconsolata', monospace;
+      font-size: 14px;
+      color: var(--text-dim);
+      text-decoration: none;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      transition: color .2s;
+    }
+
+    .ft-links a:hover {
+      color: var(--teal);
+    }
+
+    @keyframes up {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @media(max-width:960px) {
+
+      .nav,
+      .cover,
+      .layout,
+      .toc,
+      .cta-strip,
+      footer {
+        padding-left: 24px;
+        padding-right: 24px;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      footer {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 32px;
+      }
+
+      .ft-brand-col {
+        align-items: center;
+      }
+
+      .ft-links {
+        justify-content: center;
+      }
+
+      .cover-grid,
+      .problem-grid,
+      .caps-grid,
+      .personas,
+      .principles,
+      .pillars,
+      .mstats {
+        grid-template-columns: 1fr;
+      }
+
+      .sec-body {
+        margin-left: 0;
+      }
+
+      .tl-row {
+        grid-template-columns: 80px 1fr;
+      }
+
+      .cta-strip {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+
+      .cta-right {
+        align-items: center;
+      }
+
+      .ft-links {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="nav">
+    <img src="autter-light-logo.png" alt="autter logo" style="height: 80px;">
+    <div class="nav-links">
+      <a href="#problem">Problem</a>
+      <a href="#solution">Solution</a>
+      <a href="#capabilities">Capabilities</a>
+      <a href="#market">Market</a>
+      <a href="#who">Who It's For</a>
+      <a href="#principles">Principles</a>
+    </div>
+    <a href="https://autter.dev" class="nav-cta">Get Early Access</a>
+  </nav>
+
+  <!-- COVER -->
+  <div class="cover">
+    <div class="cover-eye">autter.dev / Product Handbook</div>
+    <div class="cover-grid">
+      <div>
+        <h1>Every pull request<br>is a <em>risk decision.</em><br>We make it fast.</h1>
+        <p class="cover-intro">This handbook explains what autter is, why it exists, who it serves, and how it works. If
+          you are evaluating autter for your team, your repository, or your portfolio, start here.</p>
+        <div class="cover-tag">
+          <p>autter is a runtime-aware, schema-aware, security-aware merge gate. It understands your entire repository,
+            runs code changes in a sandboxed environment, validates database migrations against real data, catches
+            security vulnerabilities, and detects low-quality AI-generated code. Every pull request gets a verdict
+            before any human reviewer opens the diff.</p>
+        </div>
+      </div>
+      <div class="cover-right">
+        <div class="cover-right-lbl">Why This Matters Now</div>
+        <div class="stat">
+          <div class="stat-val">$32B</div>
+          <div class="stat-lbl">Developer tooling market by 2028</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">77%</div>
+          <div class="stat-lbl">Of developers now use AI coding assistants</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">1.7x</div>
+          <div class="stat-lbl">More bugs in AI-generated code than human-written, per independent industry research
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- 01 PROBLEM -->
+    <section class="section" id="problem">
+      <div class="sec-hdr">
+        <div class="sec-num">01</div>
+        <div class="sec-title">
+          <h2>The Problem</h2>
+          <p class="sub">Why the way teams review code today is fundamentally broken</p>
+        </div>
+      </div>
+      <div class="sec-body">
+        <div class="prose" style="margin-bottom:40px;">
+          <p>For most of software history, code review was a human-scale problem. A developer writes a change, a
+            colleague reads it, and together they decide whether it is safe to ship. This works when teams are small and
+            the pace is manageable. It breaks down fast when both of those things stop being true.</p>
+          <p>AI coding tools have changed the equation permanently. Developers using Cursor, Copilot, Lovable, and Bolt
+            now produce far more code per day than before. The problem is that reviewers are still human. Code volume
+            has exploded. Review capacity has not moved at all.</p>
+          <p>Meanwhile, the tools that are supposed to catch problems were built for a different era. They check syntax
+            and style. They do not understand what a change actually does to a running system, how far its effects
+            reach, or whether the AI that generated it invented a function that does not exist anywhere.</p>
+        </div>
+
+        <div class="problem-grid">
+          <div class="prob">
+            <div class="prob-icon">&#9889;</div>
+            <h4>Code volume is exploding</h4>
+            <p>AI tools mean developers propose more changes faster than ever. More PRs per day, more files per PR, more
+              surface area for mistakes to hide. Human reviewers cannot keep up. Something gives, and it is usually the
+              thoroughness of the review.</p>
+          </div>
+          <div class="prob">
+            <div class="prob-icon">&#128269;</div>
+            <h4>Reviews focus on style, not risk</h4>
+            <p>Most reviewers spend their attention on formatting and naming conventions. The real question is whether a
+              change could break something or open a vulnerability. That question rarely gets a serious answer, because
+              answering it requires understanding the entire codebase, not just the lines that changed.</p>
+          </div>
+          <div class="prob">
+            <div class="prob-icon">&#128274;</div>
+            <h4>Security tools run too late</h4>
+            <p>Traditional security scanners run after code is merged and deployed. By the time they find a problem, the
+              vulnerability is live. Catching it at review time costs a fraction of the incident response, the patch
+              cycle, and the trust repair that follows a production breach.</p>
+          </div>
+          <div class="prob">
+            <div class="prob-icon">&#129302;</div>
+            <h4>AI-generated code brings new failure modes</h4>
+            <p>AI tools produce code that looks correct but frequently is not. They invent library names that do not
+              exist. They copy patterns without understanding context. They introduce subtle logic errors that pass
+              every syntax checker. No existing review tool was built to catch any of this.</p>
+          </div>
+          <div class="prob">
+            <div class="prob-icon">&#127754;</div>
+            <h4>Small changes have invisible consequences</h4>
+            <p>A two-line change to an authentication function can silently break ten other parts of the system. A
+              reviewer looking only at the changed lines cannot know that without a complete map of the codebase. No
+              human reviewer holds that map consistently for every file in every project.</p>
+          </div>
+          <div class="prob">
+            <div class="prob-icon">&#128201;</div>
+            <h4>Engineering leaders have no risk visibility</h4>
+            <p>CTOs and platform leads have no reliable, data-driven view of how risky incoming changes are, which
+              contributors introduce the most problems, or whether quality is trending up or down. Every decision is
+              based on instinct and individual memory.</p>
+          </div>
+        </div>
+
+        <div class="gap-block">
+          <div class="gap-lbl">The Core Gap No One Has Filled</div>
+          <p>There is no fast, PR-level system that answers the question engineering teams actually need answered: if
+            this change is wrong, what breaks, how far does the damage spread, and how risky is it to ship right now?
+            autter answers that question automatically, on every single pull request.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 SOLUTION -->
+    <section class="section" id="solution">
+      <div class="sec-hdr">
+        <div class="sec-num">02</div>
+        <div class="sec-title">
+          <h2>The Solution</h2>
+          <p class="sub">What autter does and why the approach is different</p>
+        </div>
+      </div>
+      <div class="sec-body">
+        <div class="prose" style="margin-bottom:40px;">
+          <p>autter installs on your GitHub repository as a required check on every pull request. When a developer opens
+            a PR, autter runs automatically. It analyses the proposed change against the full context of the codebase,
+            measures how far the change's effects reach, scans for security vulnerabilities, checks for the distinctive
+            failure patterns of AI-generated code, and produces a clear risk verdict before any human reviewer has
+            opened the diff.</p>
+          <p>The framing matters: autter is a <strong>risk engine</strong>, not a linter. It does not enforce formatting
+            rules. It answers one question: is this change safe to ship? Everything it does flows from that.</p>
+        </div>
+
+        <div class="pillars">
+          <div class="pillar c-teal">
+            <div class="pillar-num">Capability 01</div>
+            <h3>Full Codebase Understanding</h3>
+            <p>autter reads and maps your entire repository before reviewing anything. It knows how every file relates
+              to every other file and what each sensitive area of the codebase does.</p>
+          </div>
+          <div class="pillar c-gold">
+            <div class="pillar-num">Capability 02</div>
+            <h3>Blast Radius Analysis</h3>
+            <p>Before you merge, autter maps exactly how far the change ripples: which files, services, and public
+              endpoints are in the blast zone. No competitor offers this.</p>
+          </div>
+          <div class="pillar c-red">
+            <div class="pillar-num">Capability 03</div>
+            <h3>Security Scanning</h3>
+            <p>Runs on every PR against the OWASP Top 10, the global standard for critical security risks. Catches SQL
+              injection, exposed secrets, and vulnerable dependencies before they reach users.</p>
+          </div>
+          <div class="pillar c-purple">
+            <div class="pillar-num">Capability 04</div>
+            <h3>AI Slop Detection</h3>
+            <p>Identifies the failure patterns of AI-generated code: invented library names, placeholder variables, and
+              code that is structurally inconsistent with the rest of the codebase.</p>
+          </div>
+          <div class="pillar c-green">
+            <div class="pillar-num">Capability 05</div>
+            <h3>Execution Validation</h3>
+            <p>For higher-risk PRs, spins up an isolated sandbox, runs the test suite on the base branch and the PR
+              branch, and blocks the merge if new test failures are introduced.</p>
+          </div>
+          <div class="pillar c-blue">
+            <div class="pillar-num">Capability 06</div>
+            <h3>Migration Safety</h3>
+            <p>Applies database migrations against an ephemeral Neon branch, inserts synthetic data, and replays real
+              query patterns to catch data loss before a single production row is touched.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 CAPABILITIES -->
+    <section class="section" id="capabilities">
+      <div class="sec-hdr">
+        <div class="sec-num">03</div>
+        <div class="sec-title">
+          <h2>Capabilities in Depth</h2>
+          <p class="sub">What each engine does and why it exists</p>
+        </div>
+      </div>
+      <div class="sec-body">
+        <div class="caps-grid">
+          <div class="cap">
+            <span class="cap-tag teal">Blast Radius Engine</span>
+            <h4>Measures exactly how far a change reaches</h4>
+            <p>autter counts every downstream file, service, and public interface affected by what the PR modifies. It
+              produces a risk level of Low, Medium, High, or Critical. That level becomes a multiplier in the unified
+              risk score, because the same vulnerability in a widely-used critical component is orders of magnitude more
+              dangerous than the same vulnerability in an isolated corner of the codebase. A crack in a load-bearing
+              beam is not the same as a crack in a decorative tile.</p>
+          </div>
+          <div class="cap">
+            <span class="cap-tag red">Security Engine</span>
+            <h4>Three parallel checks on every PR</h4>
+            <p>Static analysis via Semgrep checks against the OWASP Top 10. Secrets detection scans every line for
+              accidentally committed API keys, database passwords, and private cryptographic keys. Dependency scanning
+              checks every new or updated package against OSV, Google's continuously maintained open-source
+              vulnerability database. All three run in parallel on every pull request, automatically.</p>
+          </div>
+          <div class="cap">
+            <span class="cap-tag gold">AI Slop Detection</span>
+            <h4>The failure patterns no other tool catches</h4>
+            <p>Hallucinated import detection cross-references every library and function name against public package
+              registries. Code that references a library that does not exist compiles and passes every syntax check,
+              then crashes at runtime. Placeholder detection flags meaningless variable names. Style deviation analysis
+              flags code that is structurally inconsistent with how the rest of the project was written over time. No
+              competitor offers any of this.</p>
+          </div>
+          <div class="cap">
+            <span class="cap-tag blue">Regression Detection</span>
+            <h4>The bugs that syntax checkers miss entirely</h4>
+            <p>Analyses logical changes rather than syntactic ones. Catches inverted conditions, removed transaction
+              boundaries, changed function signatures that break callers, removed authentication middleware, and API
+              contract violations. These bugs look completely correct on paper. They only announce themselves in
+              production. autter catches them at the PR stage by analysing whether the logic changed in dangerous ways.
+            </p>
+          </div>
+          <div class="cap">
+            <span class="cap-tag green">Execution Validation</span>
+            <h4>Actually runs the code before it merges</h4>
+            <p>Spins up an isolated, ephemeral environment using Daytona. Runs the full test suite on the base branch
+              and the PR branch. Compares results. Any test that was passing before and is failing after is a regression
+              introduced by this specific change. For lower-risk PRs, scopes execution to tests that touch files within
+              the blast radius. The depth of validation scales with the risk level.</p>
+          </div>
+          <div class="cap">
+            <span class="cap-tag red">Migration Safety</span>
+            <h4>Database changes validated before any row is touched</h4>
+            <p>Creates an ephemeral database branch via Neon, applies all existing migrations to bring it current, then
+              applies the PR's new migration. Produces a schema diff showing exactly what changed. Inserts synthetic
+              data rows and checks whether they survive the migration. Replays real SQL queries from the codebase
+              against the post-migration schema. Drops, type narrowing, removed constraints, and data loss are all
+              flagged before the migration runs anywhere real.</p>
+          </div>
+        </div>
+
+        <div class="callout">
+          <p><strong>The combination is the product.</strong> Any individual capability exists in some form somewhere in
+            the market. The thing no competitor offers is all of them working together as a unified risk engine: static
+            analysis, behavioral regression detection, live execution validation, database migration safety, and AI slop
+            detection, all running in parallel on every pull request, weighted by how far the change reaches. autter is
+            the only platform that catches problems at all four layers simultaneously: in the code, in the running
+            application, in the database schema, and in the data itself.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 HOW IT WORKS -->
+    <section class="section" id="how-it-works">
+      <div class="sec-hdr">
+        <div class="sec-num">04</div>
+        <div class="sec-title">
+          <h2>How It Works</h2>
+          <p class="sub">What reviewers see on every PR</p>
+        </div>
+      </div>
+      <div class="sec-body">
+        <div class="prose" style="margin-bottom:32px;">
+          <p>autter installs as a GitHub App in one click. No developer changes their workflow. When a PR opens, autter
+            runs automatically and posts a structured review comment with findings, scores, and one-click fix
+            suggestions. The GitHub check status updates simultaneously, physically controlling whether the merge button
+            is enabled or blocked.</p>
+        </div>
+
+        <div class="terminal" style="font-family: 'Inconsolata', monospace !important; font-size: 28px !important;">
+          <div class="t-bar">
+            <div class="t-dot r"></div>
+            <div class="t-dot y"></div>
+            <div class="t-dot g"></div>
+            <span class="t-lbl">autter / pr-analysis / pr #247 / add payment webhook handler</span>
+          </div>
+          <div class="t-body">
+            <div class="tc">## autter Analysis Report</div>
+            <div class="tc">
+              &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+            </div><br>
+            <div><span class="tk">PR: </span><span class="tw">Add payment webhook handler</span></div>
+            <div><span class="tk">Files changed: </span><span class="tw">7 &nbsp;&nbsp;Lines: +312 / -48</span></div>
+            <br>
+            <div><span class="tk">Blast Radius: </span><span class="tr">CRITICAL: 23 downstream files</span></div>
+            <div class="ti"><span class="tk">Scopes: </span><span class="tw">Billing, Auth, Notifications</span></div>
+            <div class="ti"><span class="tk">Touches: </span><span class="tr">Payment processing, Auth layer, 3 public
+                endpoints</span></div><br>
+            <div><span class="tk">Security Score: </span><span class="tr">78 / 100 (High)</span></div>
+            <div><span class="tk">Regression: </span><span class="tr">62 / 100 (High)</span></div>
+            <div><span class="tk">Execution: </span><span class="to">41 / 100 (Medium: 2 new test failures)</span></div>
+            <div><span class="tk">Migration: </span><span class="tr">89 / 100 (Critical: column drop detected)</span>
+            </div>
+            <div><span class="tk">Final Score: </span><span class="tr">84 / 100 (CRITICAL)</span></div><br>
+            <div class="tc">&#9472;&#9472; Findings (5 issues)
+              &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+            </div><br>
+            <div><span class="tr">[CRITICAL / SECURITY]</span><span class="tw"> webhook_handler.py, line 94</span></div>
+            <div class="ti"><span class="tk">What: </span><span class="tw">User input pasted directly into a database
+                query</span></div>
+            <div class="ti"><span class="tk">Risk: </span><span class="tw">Attacker can read or delete your entire
+                database through a form field</span></div>
+            <div class="ti"><span class="tk">Fix: </span><span class="tg">Use a parameterised query (one-click
+                suggestion attached)</span></div><br>
+            <div><span class="tr">[CRITICAL / REGRESSION]</span><span class="tw"> auth/middleware.py, line 31</span>
+            </div>
+            <div class="ti"><span class="tk">What: </span><span class="tw">Auth middleware removed from /api/payments
+                route</span></div>
+            <div class="ti"><span class="tk">Risk: </span><span class="tw">Any unauthenticated user can now call the
+                payment endpoint directly</span></div><br>
+            <div><span class="tr">[CRITICAL / MIGRATION]</span><span class="tw">
+                migrations/0042_drop_payment_token.sql</span></div>
+            <div class="ti"><span class="tk">What: </span><span class="tw">Permanently drops users.payment_method_token
+                column</span></div>
+            <div class="ti"><span class="tk">Data: </span><span class="tr">12 synthetic rows lost. 3 queries referencing
+                this column fail.</span></div><br>
+            <div class="tc">&#9472;&#9472; Verdict
+              &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+            </div><br>
+            <div><span class="tk">Decision: </span><span class="tr">MERGE BLOCKED</span></div>
+            <div class="ti"><span class="tw">Resolve the 3 critical findings above to unlock merge.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 MARKET -->
+    <section class="section" id="market">
+      <div class="sec-hdr">
+        <div class="sec-num">05</div>
+        <div class="sec-title">
+          <h2>Market Size</h2>
+          <p class="sub">The scale and shape of the opportunity</p>
+        </div>
+      </div>
+      <div class="sec-body">
+        <div class="prose" style="margin-bottom:40px;">
+          <p>autter operates at the intersection of developer tooling and application security testing. The shift to
+            AI-assisted development is creating a new sub-category within both markets that did not meaningfully exist
+            three years ago. The companies that define that sub-category now will own it for a long time.</p>
+        </div>
+
+        <div class="mstats">
+          <div class="mstat">
+            <div class="mstat-val">$32B</div>
+            <div class="mstat-lbl">Developer tooling market projected by 2028</div>
+            <div class="mstat-ctx">Growing at approximately 18% per year</div>
+          </div>
+          <div class="mstat">
+            <div class="mstat-val">$21B</div>
+            <div class="mstat-lbl">Application security testing market by 2027</div>
+            <div class="mstat-ctx">Growing at approximately 24% per year, accelerated by AI adoption</div>
+          </div>
+          <div class="mstat">
+            <div class="mstat-val">100M+</div>
+            <div class="mstat-lbl">Developers worldwide, 77% of whom now use AI coding tools</div>
+            <div class="mstat-ctx">Every team generating AI code is a potential autter customer</div>
+          </div>
+        </div>
+
+        <div class="ctable-wrap">
+          <table class="ctable">
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>Traditional SAST Tools</th>
+                <th>AI Review Tools</th>
+                <th>Lightweight Reviewers</th>
+                <th class="ours">autter</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Static security analysis</td>
+                <td>Yes</td>
+                <td>Yes, via integrations</td>
+                <td class="partial">Partial</td>
+                <td class="ours">Yes, OWASP-aligned</td>
+              </tr>
+              <tr>
+                <td>Dependency vulnerability scanning</td>
+                <td>Yes</td>
+                <td>Yes</td>
+                <td class="partial">Partial</td>
+                <td class="ours">Yes, via OSV</td>
+              </tr>
+              <tr>
+                <td>Secrets and credential detection</td>
+                <td class="partial">Some</td>
+                <td>Yes</td>
+                <td class="partial">Partial</td>
+                <td class="ours">Yes</td>
+              </tr>
+              <tr>
+                <td>Blast Radius / system-wide impact</td>
+                <td class="no">No</td>
+                <td class="partial">Partial</td>
+                <td class="no">No</td>
+                <td class="ours">Yes, core feature</td>
+              </tr>
+              <tr>
+                <td>AI slop and hallucination detection</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="ours">Yes, core feature</td>
+              </tr>
+              <tr>
+                <td>Behavioral regression detection</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="ours">Yes</td>
+              </tr>
+              <tr>
+                <td>Execution validation in sandbox</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="ours">Yes, via Daytona</td>
+              </tr>
+              <tr>
+                <td>Database migration safety</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="ours">Yes, via Neon</td>
+              </tr>
+              <tr>
+                <td>Native merge blocking</td>
+                <td class="partial">Via CI only</td>
+                <td class="no">No</td>
+                <td class="no">No</td>
+                <td class="ours">Yes, native</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <p><strong>On the competition:</strong> The AI code review category is attracting significant investment, with
+            recent funding rounds confirming that engineering budgets are actively allocated here. That validates the
+            market, not the category winner. Existing AI review tools score poorly on review completeness in independent
+            benchmarks and have demonstrated serious security vulnerabilities of their own. No tool in the current
+            market runs your code, validates your database migrations, or detects behavioral regressions. That gap is
+            what autter was built to close.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 WHY NOW -->
+    <section class="section" id="why-now">
+      <div class="sec-hdr">
+        <div class="sec-num">06</div>
+        <div class="sec-title">
+          <h2>Why Now</h2>
+          <p class="sub">The timing argument for building autter today</p>
+        </div>
+      </div>
+      <div class="sec-body">
+        <div class="timeline">
+          <div class="tl-row">
+            <div class="tl-year">2022</div>
+            <div class="tl-content">
+              <h4>AI coding tools enter the mainstream</h4>
+              <p>GitHub Copilot launches publicly. ChatGPT arrives in November. AI-generated code becomes a realistic
+                part of everyday developer workflow. The specific failure modes that emerge at scale are not yet
+                understood.</p>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-year">2023 to 2024</div>
+            <div class="tl-content">
+              <h4>Adoption reaches developers at every skill level</h4>
+              <p>Cursor, Lovable, Bolt, and Replit launch. Non-engineers begin pushing code to repositories. AI-assisted
+                development goes from a productivity trick to the default workflow. Most engineering teams have no
+                reliable way to review AI-generated code differently from human-written code.</p>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-year">2025</div>
+            <div class="tl-content">
+              <h4>The trust gap becomes painful and well-funded</h4>
+              <p>Engineering teams experience the failure modes at scale. A widely-used AI review tool executes a
+                malicious instruction found in a PR comment, exposing over one million repositories. Significant venture
+                capital flows into the AI code review category, confirming that engineering budgets are allocated and
+                teams are actively looking for a more serious solution.</p>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-year">2025 to 2026</div>
+            <div class="tl-content">
+              <h4>The category is being defined right now</h4>
+              <p>The pain is established. Engineering budgets for developer tooling and application security are
+                approved. The buying criteria for what AI-aware code review actually means are still being written by
+                customers making their first purchasing decisions. The companies that build the right solution during
+                this window will set the standard for the next five years.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 WHO -->
+    <section class="section" id="who">
+      <div class="sec-hdr">
+        <div class="sec-num">07</div>
+        <div class="sec-title">
+          <h2>Who It's For</h2>
+          <p class="sub">The people who buy autter and the problems they are trying to solve</p>
+        </div>
+      </div>
+      <div class="sec-body">
+        <div class="prose" style="margin-bottom:40px;">
+          <p>autter is bought by engineering teams and organisations, not individual developers. The person who installs
+            it is rarely the person writing the code. They are the person responsible for what happens when that code
+            reaches production. Every feature decision at autter is evaluated through the lens of the person paying the
+            invoice.</p>
+        </div>
+
+        <div class="personas">
+          <div class="persona">
+            <div class="persona-tag">Primary Buyer</div>
+            <h3>The Engineering Lead or CTO</h3>
+            <p class="desc">Responsible for everything the team ships. Developers are using AI tools and moving fast.
+              Manual reviews are getting harder to do thoroughly because volume is high and AI-generated code is
+              structurally harder to evaluate. Needs a system they can trust to catch what the team misses, with clear
+              visibility into where risk is accumulating before something goes wrong.</p>
+            <div class="persona-pains">
+              <div class="pain-lbl">What keeps them up at night</div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>A SQL injection vulnerability slips through review and gets exploited in production. The postmortem
+                  asks why nobody caught it at review time.</div>
+              </div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>Half the team is using Cursor and Lovable to generate code. Nobody knows how much of it requires a
+                  different kind of review attention to be safe.</div>
+              </div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>40 open PRs. No reliable way to know which three genuinely need careful human attention and which
+                  37 are safe to approve quickly.</div>
+              </div>
+            </div>
+          </div>
+          <div class="persona">
+            <div class="persona-tag">Primary Buyer</div>
+            <h3>The Open Source Maintainer</h3>
+            <p class="desc">Maintains a public repository with hundreds of external contributors. Receiving more PRs
+              than ever, many AI-generated with widely varying quality. No budget to hire dedicated reviewers. Needs
+              automation smart enough to separate the few PRs requiring genuine attention from the many that are safe to
+              approve, and to block the ones that are clearly not.</p>
+            <div class="persona-pains">
+              <div class="pain-lbl">What keeps them up at night</div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>The majority of incoming PRs are AI-generated boilerplate that adds no value and consumes hours of
+                  review time every week.</div>
+              </div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>A contributor submitted a PR with a vulnerable dependency. It merged. A security researcher filed a
+                  report six months later.</div>
+              </div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>No way to distinguish which contributors are consistently reliable from those who are generating
+                  noise.</div>
+              </div>
+            </div>
+          </div>
+          <div class="persona">
+            <div class="persona-tag">Secondary Buyer</div>
+            <h3>The DevSecOps Engineer</h3>
+            <p class="desc">Responsible for the security posture of engineering output across the organisation.
+              Currently running security scans after deployment, finding vulnerabilities in code that is already live.
+              Looking to shift security left to the PR stage. Also responsible for producing evidence of security
+              controls for compliance audits.</p>
+            <div class="persona-pains">
+              <div class="pain-lbl">What they need from autter</div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>Automatic, consistent security checks on every PR without requiring developers to change their
+                  workflow.</div>
+              </div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>Exportable security reports for SOC 2 audits, ISO 27001 assessments, and enterprise procurement
+                  reviews.</div>
+              </div>
+            </div>
+          </div>
+          <div class="persona">
+            <div class="persona-tag">Secondary Buyer</div>
+            <h3>The Startup CTO Moving Fast</h3>
+            <p class="desc">Running a small team using every AI tool available to ship features at maximum speed.
+              Understands the team is accumulating risk but cannot afford to slow down. Needs a safety net that catches
+              genuinely dangerous issues without adding friction to parts of the workflow that are working.</p>
+            <div class="persona-pains">
+              <div class="pain-lbl">What they need from autter</div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>Analysis that completes fast. Any tool that noticeably slows down the review process gets routed
+                  around.</div>
+              </div>
+              <div class="pain-item">
+                <div class="pain-arr">&#8594;</div>
+                <div>Low noise. Every finding must be a genuine issue with a specific fix attached. A false positive
+                  rate above 10% erodes trust and leads to findings being ignored.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- CTA -->
+  <img src="./checking-otter.png" alt="autter Checking Otter" style="max-width: 100vw;">
+  <div class="cta-strip">
+    <div class="cta-left">
+      <h2>Ready to put a guard<br>at your <em>gate?</em></h2>
+      <p>autter is in early access. Install on your first repository in under two minutes. No configuration required to
+        get started.</p>
+    </div>
+    <div class="cta-right">
+      <img src="autter-dark-logo.png" alt="autter logo" style="height: 68px; margin-bottom: 6px;">
+      <a href="https://autter.dev" class="btn-primary">Get Early Access</a>
+    </div>
+  </div>
+
+  <footer>
+    <div class="ft-brand-col">
+      <img src="autter-light-logo.png" alt="autter logo" style="height: 68px; margin-bottom: 6px;">
+      <div class="ft-sub">auditor otter / autter.dev / hello@autter.dev</div>
+    </div>
+    <div class="ft-links">
+      <a href="#problem">Problem</a>
+      <a href="#solution">Solution</a>
+      <a href="#market">Market</a>
+      <a href="#who">Who It's For</a>
+      <a href="https://autter.dev">autter.dev</a>
+    </div>
+  </footer>
+
+</body>
+
+</html>
