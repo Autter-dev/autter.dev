@@ -2,6 +2,9 @@
 <html lang="en">
 
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <!-- Primary Meta -->
   <title>The Autter.dev Handbook | How We Think About Code Review, AI Slop, and Merge Safety</title>
   <meta name="description"
@@ -176,6 +179,8 @@
 
     html {
       scroll-behavior: smooth;
+      width: 100%;
+      overflow-x: hidden;
     }
 
     body {
@@ -185,7 +190,6 @@
       font-size: 16px;
       line-height: 1.75;
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
       text-align: justify;
     }
 
@@ -212,6 +216,11 @@
 
     .nav-logo {
       height: 26px;
+      width: auto;
+    }
+
+    .nav-logo-img {
+      height: 80px;
       width: auto;
     }
 
@@ -266,6 +275,33 @@
 
     .nav-cta:hover {
       opacity: .85;
+    }
+
+    .nav-toggle {
+      display: none;
+      margin-left: 16px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+    }
+
+    .nav-toggle span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background: var(--ink);
+      margin: 4px 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+      transform-origin: center;
+    }
+
+    body.nav-open .nav-toggle span:nth-child(1) {
+      transform: translateY(4px) rotate(45deg);
+    }
+
+    body.nav-open .nav-toggle span:nth-child(2) {
+      transform: translateY(-4px) rotate(-45deg);
     }
 
     /* COVER */
@@ -1124,6 +1160,14 @@
 
     @media(max-width:960px) {
 
+      body {
+        text-align: left;
+      }
+
+      .nav-logo-img {
+        height: 60px;
+      }
+
       .nav,
       .cover,
       .layout,
@@ -1135,7 +1179,40 @@
       }
 
       .nav-links {
-        display: none;
+        position: absolute;
+        top: 90px;
+        left: 0;
+        right: 0;
+        background: rgba(247, 244, 239, 0.98);
+        flex-direction: column;
+        border-bottom: 1px solid var(--border);
+        padding: 8px 24px 12px;
+        gap: 4px;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(-8px);
+        transition: max-height 0.22s ease, opacity 0.18s ease, transform 0.18s ease;
+      }
+
+      body.nav-open .nav-links {
+        max-height: 260px;
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .nav-links a {
+        padding: 10px 0;
+        border-bottom: none;
+      }
+
+      .nav-cta {
+        font-size: 14px;
+        padding: 6px 14px;
+      }
+
+      .nav-toggle {
+        display: block;
       }
 
       footer {
@@ -1192,7 +1269,7 @@
 <body>
 
   <nav class="nav">
-    <img src="autter-light-logo.png" alt="autter logo" style="height: 80px;">
+    <img src="autter-light-logo.png" alt="autter logo" class="nav-logo-img">
     <div class="nav-links">
       <a href="#problem">Problem</a>
       <a href="#solution">Solution</a>
@@ -1201,6 +1278,10 @@
       <a href="#who">Who It's For</a>
       <a href="#principles">Principles</a>
     </div>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <span></span>
+      <span></span>
+    </button>
     <a href="https://autter.dev" class="nav-cta">Get Early Access</a>
   </nav>
 
@@ -1846,7 +1927,25 @@
       <a href="#who">Who It's For</a>
       <a href="https://autter.dev">autter.dev</a>
     </div>
-  </footer>
+</footer>
+
+<script>
+  (function () {
+    const toggle = document.querySelector('.nav-toggle');
+    const links = document.querySelectorAll('.nav-links a');
+    if (!toggle) return;
+
+    toggle.addEventListener('click', () => {
+      document.body.classList.toggle('nav-open');
+    });
+
+    links.forEach(link => {
+      link.addEventListener('click', () => {
+        document.body.classList.remove('nav-open');
+      });
+    });
+  })();
+</script>
 
 </body>
 
